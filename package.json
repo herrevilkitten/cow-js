@@ -1,14 +1,28 @@
 {
   "name": "cow-js",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A MOO-type game engine written in TypeScript with JavaScript softcoding",
+  "main": "src/main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsx watch src/index.ts"
+    "start": "tsx watch src/main"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "multiplayer",
+    "moo",
+    "mud",
+    "game",
+    "cow",
+    "cow-js"
+  ],
+  "author": {
+    "name": "Eric Kidder",
+    "email": "eric@kidderberg.us"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/herrevilkitten/cow-js.git"
+  },
   "license": "ISC",
   "devEngines": {
     "packageManager": {
