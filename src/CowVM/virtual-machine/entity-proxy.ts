@@ -55,9 +55,9 @@ export function createEntityProxy(
           );
         case "send":
           return (text: string) => {
-            const connection = gameEngine.connections.get(t);
-            if (connection) {
-              connection.output.add(text);
+            const clientUri = t.clientUri;
+            if (clientUri) {
+              gameEngine.queueOutput(clientUri, text);
             }
           };
         case "emit":

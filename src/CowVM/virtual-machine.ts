@@ -4,11 +4,16 @@ import { Console } from "console";
 import { compileString } from "./virtual-machine/compiler.js";
 import type { Entity } from "./models/entity.js";
 import { createEntityProxy } from "./virtual-machine/entity-proxy.js";
+import { GameEngine } from "@CowVM/game-engine.js";
 
 const DEFAULT_CONTEXT = {
   // Disable asynchronous functions for security reasons
   Promise: undefined,
   AsyncFunction: undefined,
+  setTimeout: undefined,
+  setInterval: undefined,
+  setImmediate: undefined,
+  queueMicrotask: undefined,
 };
 
 const CONTEXT_OPTIONS: vm.CreateContextOptions = {
@@ -23,11 +28,15 @@ const runScriptOptions: vm.RunningScriptOptions = {
 };
 
 export class VirtualMachine {
-  constructor(public world: World) {}
+  private gameEngine: GameEngine;
 
-  private connectionStream(queue: ConnectionQueue) {
+  constructor(gameEngine: GameEngine) {
+    this.gameEngine = gameEngine;
+  }
+
+  private connectionStream(gameEngine: GameEngine, clientUri: string) {
     return new (class extends Writable {
-      constructor(public queue: ConnectionQueue) {
+      constructor() {
         super();
       }
 
@@ -36,14 +45,14 @@ export class VirtualMachine {
         encoding: BufferEncoding,
         callback: (error?: Error | null | undefined) => void,
       ): void {
-        queue.add(chunk.toString());
+        clientUri && gameEngine.queueOutput(clientUri, chunk.toString());
         callback();
       }
-    })(queue);
+    })();
   }
 
   private actorContext(actor: Entity) {
-    const actorProxy = createEntityProxy(this.world, actor);
+    const actorProxy = createEntityProxy(this.gameEngine, actor);
     return {
       me: actorProxy,
       here: actorProxy.location,
@@ -51,9 +60,8 @@ export class VirtualMachine {
   }
 
   private consoleContext(actor: Entity) {
-    const connection = this.world.connections.get(actor);
-    const consoleStream = connection
-      ? this.connectionStream(connection.output)
+    const consoleStream = actor.clientUri
+      ? this.connectionStream(this.gameEngine, actor.clientUri)
       : process.stdout;
     return { console: new Console({ stdout: consoleStream }) };
   }
@@ -71,7 +79,7 @@ export class VirtualMachine {
       },
       CONTEXT_OPTIONS,
     );
-    console.debug(`Running`);
+    console.debug(`Running script`);
     const result = compiledScript.runInContext(context, runScriptOptions);
     console.debug({ context });
 
@@ -88,11 +96,11 @@ export class VirtualMachine {
         ...DEFAULT_CONTEXT,
         ...this.actorContext(actor),
         ...this.consoleContext(actor),
-        parameters: parameters,
+        parameters,
       },
       CONTEXT_OPTIONS,
     );
-    console.debug(`Running`);
+    console.debug(`Running command`);
     const result = compiledScript.runInContext(context, runScriptOptions);
     console.debug({ context });
 
